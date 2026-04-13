@@ -4,6 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-6c63ff?style=for-the-badge&logo=react)](https://turboquant-dmrg.app)
 [![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%2B%20React-00a?style=for-the-badge&logo=fastapi)](https://github.com/fredm23579/turboquant-dmrg-app)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
