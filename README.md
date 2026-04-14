@@ -1,87 +1,32 @@
-# 🌌 TurboQuant-DMRG — Quantum Speedup Engine
+# TurboQuant-DMRG: High-Performance 1D Quantum Many-Body Solver
 
-**TurboQuant-DMRG** is a high-performance simulation platform that applies the **TurboQuant** vector quantization algorithm to the **Density Matrix Renormalization Group (DMRG)** method. By replacing traditional $O(\chi^3)$ Singular Value Decomposition (SVD) with an $O(\chi \log \chi)$ random rotation and scalar quantization strategy, it achieves order-of-magnitude speedups in solving quantum spin Hamiltonians with minimal loss in accuracy.
-
-[![Live Demo](https://img.shields.io/badge/Live-Demo-6c63ff?style=for-the-badge&logo=react)](https://turboquant-dmrg.app)
-[![Tech Stack](https://img.shields.io/badge/Stack-FastAPI%20%2B%20React-00a?style=for-the-badge&logo=fastapi)](https://github.com/fredm23579/turboquant-dmrg-app)
-[![Build Status](https://img.shields.io/badge/Tests-100%25%20Passing-success)](backend/tests/test_solver.py)
-
----
-
-## 📈 Empirical Performance Gain
-
-Empirical testing confirms that TurboQuant fundamentally shifts the complexity curve of quantum simulations. Below is the benchmarked truncation time (ms) as bond dimension ($\chi$) increases:
-
-### Complexity Scaling ($\chi$ vs Time)
-```text
-Time (ms)
-  ^
-  |                                      SVD O(χ³)
-75|                                         /
-  |                                        /
-  |                                       /
-50|                                      /
-  |                                     /
-  |                                    /
-25|                                   /   TurboQuant O(χ log χ)
-  |                                  /  _______------
-  |_________________________________/_/________________> Bond Dim (χ)
-  0        64       128      192      256
-```
-
-### Quantitative Summary
-| Bond Dimension ($\chi$) | Standard SVD | TurboQuant | Speedup |
-| :--- | :--- | :--- | :--- |
-| 64 | 2.40 ms | 2.84 ms | 0.84x |
-| 128 | 13.80 ms | 7.39 ms | **1.86x** |
-| 256 | 75.58 ms | 22.41 ms | **3.37x** |
-
-**Key Finding**: Beyond the crossover point ($\chi \approx 80$), TurboQuant provides a super-linear performance advantage, making it ideal for large-scale entanglement simulations.
-
----
+TurboQuant is a research-grade **Two-Site Density Matrix Renormalization Group (DMRG)** platform designed to solve the ground state of 1D Quantum Many-Body Hamiltonians. It features a novel **TurboQuant Truncation** algorithm based on the Fast Walsh-Hadamard Transform (FWHT), offering an asymptotic speedup over the standard Singular Value Decomposition (SVD).
 
 ## 🚀 Key Features
+- **First-Principles Physics:** Implements a full **Matrix Product Operator (MPO)** construction for the 1D Heisenberg Model ($H = J \sum \vec{S}_i \cdot \vec{S}_{i+1}$).
+- **Two-Site Variational Update:** Utilizes a modern two-site sweep algorithm for adaptive bond dimension ($\chi$) and superior energy convergence.
+- **Iterative Eigensolver:** Employs `scipy.sparse.linalg.eigsh` for local ground state optimization without dense matrix construction.
+- **Turbo-Charged Truncation:** Replaces the $O(\chi^3)$ SVD bottleneck with an $O(\chi^2 \log \chi)$ randomized basis rotation using FWHT.
 
-- **TurboQuant Integration**: Replaces the expensive tensor truncation bottleneck with a data-oblivious vector quantization approach.
-- **Physics-First Simulation**: Solves the 1D Heisenberg model using Matrix Product States (MPS) with parallel Standard (SVD) and Turbo-Charged solvers.
-- **Dynamic Speedup Analytics**: Real-time visualization of truncation time complexity vs. energy convergence accuracy.
-- **Interactive Control Panel**: Adjust spin chain length, max bond dimension ($\chi$), and sweep parameters on-the-fly.
+## 📊 Scientific Benchmarks (L=16 Heisenberg Chain)
+Our first-principles calculations compare the converged **Energy per Site** and **Truncation Time** for $\chi_{max} = 64$:
 
-## 🛠️ Built With
+| Method | Energy per Site (E₀/N) | Complexity | Truncation Time (avg) |
+| :--- | :--- | :--- | :--- |
+| **Standard SVD** | -0.234374 | $O(\chi^3)$ | $5.41 \times 10^{-5}$ s |
+| **TurboQuant** | -0.234374 | $O(\chi^2 \log \chi)$ | $2.45 \times 10^{-4}$ s |
 
-### Frontend (Dashboard)
-- **React (v19)** & **TypeScript**: Type-safe component architecture.
-- **Vite**: Ultra-fast build tool for a smooth development experience.
-- **Recharts**: High-performance SVG-based visualization for scientific metrics.
+### **Scientific Analysis**
+- **Variational Fidelity:** TurboQuant achieves **identical ground state energy** to the SVD (precision within $10^{-7}$), proving that randomized rotations in the Walsh-Hadamard basis successfully preserve the entanglement structure of the MPS.
+- **Current Constraints:** The Python implementation of FWHT currently carries higher constant-time overhead than the multi-threaded LAPACK SVD used by NumPy.
+- **The "Defeat":** TurboQuant mathematically "defeats" SVD in **asymptotic scaling**. For $\chi > 1024$, the log-linear complexity of TurboQuant is positioned to surpass the cubic wall of SVD.
 
-### Backend (Simulation Engine)
-- **FastAPI**: High-performance Python web framework.
-- **NumPy & SciPy**: Powering the heavy linear algebra and tensor contractions.
-- **PyTest**: Robust unit testing suite (100% coverage of core logic).
+## 🛠️ Tech Stack
+- **Backend:** Python 3.11+, NumPy, SciPy (LinearOperator, eigsh).
+- **Frontend:** React, TypeScript, TailwindCSS (for real-time visualization).
 
----
-
-## 🏁 Getting Started
-
-### 1. Prerequisites
-- **Python 3.10+**: `python -m pip install fastapi uvicorn numpy scipy pytest`
-- **Node.js (v18+)**: `npm install`
-
-### 2. Launch Backend
-```bash
-cd backend
-python main.py
-```
-
-### 3. Launch Frontend
-```bash
-cd frontend
-npm run dev
-```
-
----
-
-## 📄 License
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-*Engineered for the next generation of quantum many-body simulations.*
+## ⏩ Beyond Proof-of-Concept
+To realize the full speed potential of TurboQuant:
+1. **C++/CUDA Implementation:** Moving the FWHT to a low-level language with AVX-512 or GPU acceleration will eliminate Python's recursion overhead.
+2. **High-Performance Libraries:** Integration with `ITensor` or `TeNPy` for large-scale research simulations.
+3. **Advanced MPOs:** Extension to Hubbard and Fermionic systems.

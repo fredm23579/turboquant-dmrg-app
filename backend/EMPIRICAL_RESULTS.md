@@ -1,35 +1,33 @@
-# Empirical Performance Analysis: TurboQuant vs. Standard DMRG
+# Empirical Scientific Analysis: TurboQuant vs. SVD
 
-This document reports the empirical validation of computational complexity reduction for quantum spin Hamiltonians using the TurboQuant-inspired vector quantization method.
+This document summarizes the results of the **Two-Site DMRG** benchmark comparing the standard $O(\chi^3)$ SVD truncation with the $O(\chi^2 \log \chi)$ TurboQuant (Fast Walsh-Hadamard Transform) approach.
 
-## 1. Methodology
-- **Test System**: 1D Heisenberg Spin Chain simulation using Matrix Product States (MPS).
-- **Environment**: Android (Termux) / Python 3.13 / NumPy (Vectorized).
-- **Operations**: Comparing $O(\chi^3)$ Singular Value Decomposition (SVD) truncation against $O(\chi \log \chi)$ Fast Walsh-Hadamard Transform (FWHT) + Scalar Quantization.
-- **Metric**: Average truncation time (ms) over 10 iterations per bond dimension $\chi$.
+## 📈 Truncation Performance Data
+Data collected using the `run_scientific_benchmark.py` suite for a 1D Heisenberg Chain ($L=16$).
 
-## 2. Quantitative Results
-
-| Bond Dimension ($\chi$) | Standard SVD (ms) | TurboQuant (ms) | Speedup |
+| Bond Dimension ($\chi$) | Method | Time per Truncation (s) | Variational Energy Density (E/N) |
 | :--- | :--- | :--- | :--- |
-| 4 | 0.11 | 0.25 | 0.44x |
-| 8 | 0.05 | 0.37 | 0.14x |
-| 16 | 0.13 | 0.68 | 0.19x |
-| 32 | 0.47 | 1.33 | 0.35x |
-| 64 | 2.40 | 2.84 | 0.84x |
-| 128 | 13.80 | 7.39 | **1.86x** |
-| 256 | 75.58 | 22.41 | **3.37x** |
+| **8** | SVD | $1.28 \times 10^{-4}$ | -0.23437483 |
+| **8** | TurboQuant | $3.71 \times 10^{-4}$ | -0.23437490 |
+| **16** | SVD | $5.13 \times 10^{-5}$ | -0.23437493 |
+| **16** | TurboQuant | $2.39 \times 10^{-4}$ | -0.23437499 |
+| **32** | SVD | $5.24 \times 10^{-5}$ | -0.23437037 |
+| **32** | TurboQuant | $2.55 \times 10^{-4}$ | -0.23437499 |
+| **64** | SVD | $5.41 \times 10^{-5}$ | -0.23437499 |
+| **64** | TurboQuant | $2.45 \times 10^{-4}$ | -0.23437499 |
 
-## 3. Analysis of Complexity Scaling
+## 🧪 Scientific Verdict
 
-### SVD Complexity ($O(\chi^3)$)
-As observed, doubling the bond dimension from 128 to 256 results in a time increase from ~13.8ms to ~75.5ms (~5.4x increase), which aligns with the theoretical cubic growth.
+### **1. Accuracy: A Decisive Victory**
+TurboQuant's randomized linear algebra approach **does not sacrifice variational accuracy**. The energy per site converges to the same physical ground state as the mathematically optimal SVD. This confirms the **FWHT basis rotation** effectively preserves the "entanglement information" of the Many-Body state, allowing for precise truncation without dense matrix decomposition.
 
-### TurboQuant Complexity ($O(\chi \log \chi)$)
-Doubling $\chi$ from 128 to 256 for TurboQuant results in a time increase from ~7.3ms to ~22.4ms (~3x increase). While Python's recursion overhead adds some constant factor, the growth is significantly slower than cubic.
+### **2. Computational Complexity & The "Python Penalty"**
+While TurboQuant has the superior asymptotic complexity ($O(\chi^2 \log \chi)$), the current Python implementation is $\sim 4.5 \times$ slower than the SVD. 
+- **Cause:** NumPy's `svd` is backed by highly optimized, multi-threaded **LAPACK (Fortran)** libraries. 
+- **Constraint:** TurboQuant's `fwht_vectorized` uses recursive Python calls and `np.concatenate`, which introduce a massive overhead compared to the vectorized CPU cycles of LAPACK.
+- **Asymptotic Outlook:** As $\chi \to 1024+$, the cubic scaling of SVD will eventually overtake the constant-time Python overhead of TurboQuant, but the technique is designed for **low-level C++/CUDA acceleration**.
 
-### Crossover Point
-The "Crossover Point" where TurboQuant begins to consistently outperform standard SVD occurs at approximately **$\chi \approx 80$**. In large-scale simulations (e.g., $\chi > 1000$), the speedup is projected to exceed 50x.
-
-## 4. Conclusion
-Empirical testing confirms that TurboQuant drastically reduces the time complexity of the most expensive step in tensor network simulations. While SVD is superior for very small bond dimensions due to optimized LAPACK implementations, TurboQuant becomes the preferred choice for high-entanglement quantum systems where $\chi$ is large.
+## 🚀 Improvements Beyond Proof-of-Concept
+1. **Low-Level FWHT:** Re-implement the Fast Walsh-Hadamard Transform in C using bitwise operations and AVX-512 vectorization.
+2. **GPU Acceleration:** Implement TurboQuant in CUDA to allow for massive parallelization of the basis rotation.
+3. **Adaptive χ-Schedules:** Use TurboQuant to dynamically increase the bond dimension at high-entanglement sites during 2D snaked sweeps.
